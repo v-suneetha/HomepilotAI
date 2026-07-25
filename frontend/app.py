@@ -90,6 +90,32 @@ if summary_response.ok:
     st.markdown("### Premium expense intelligence")
     st.caption("A refined overview designed to feel like a modern financial operating system.")
 
+    with st.expander("Import transactions", expanded=True):
+        st.write("Upload CSV or Excel files with columns like: date, description, amount, category")
+        sample_csv = "date,description,amount,category\n2026-07-01,Grocery run,45.50,Groceries\n2026-07-02,Electricity bill,80.00,Utilities"
+        st.download_button(
+            label="Download sample CSV",
+            data=sample_csv,
+            file_name="sample_transactions.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+        uploaded_file = st.file_uploader("Upload a CSV or Excel file", type=["csv", "xlsx", "xls"])
+        if uploaded_file is not None:
+            try:
+                files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/octet-stream")}
+                endpoint = "/api/expenses/import/csv" if uploaded_file.name.lower().endswith(".csv") else "/api/expenses/import/excel"
+                response = requests.post(f"{BACKEND_URL}{endpoint}", files=files, timeout=20)
+                if response.ok:
+                    payload = response.json()
+                    st.success(f"Imported {payload.get('imported_count', 0)} transactions successfully.")
+                    st.caption("Your dashboard will refresh with the latest records.")
+                    st.rerun()
+                else:
+                    st.error("Import failed. Please check the file format and contents.")
+            except Exception as exc:
+                st.error(f"Import request failed: {exc}")
+
     metric_col1, metric_col2, metric_col3 = st.columns(3)
     with metric_col1:
         st.metric("Transactions", summary.get("transaction_count", 0))
@@ -207,6 +233,31 @@ if summary_response.ok:
                 st.markdown(f"**{item['category']}** · limit {item['limit']:.2f} · spent {item['spent']:.2f} · remaining {item['remaining']:.2f}")
                 st.progress(min(1.0, item["spent"] / item["limit"]))
                 st.caption(status_text)
+
+        insight_row = st.columns(2)
+        with insight_row[0]:
+            if summary.get("monthly_change"):
+                st.markdown("#### Monthly change")
+                for item in summary["monthly_change"]:
+                    delta_text = f"{item['change']:+.2f}" if item.get("change") else "0.00"
+                    pct_text = f" ({item['percent_change']:+.1f}%)" if item.get("percent_change") is not None else ""
+                    st.write(f"- {item['month']}: {item['total']:.2f} | change {delta_text}{pct_text}")
+
+        with insight_row[1]:
+            if summary.get("duplicate_candidates"):
+                st.markdown("#### Possible duplicates")
+                for item in summary["duplicate_candidates"]:
+                    st.write(f"- {item['description']} · {item['amount']:.2f} · {item['date']} · {item['count']} entries")
+
+        if summary.get("insights"):
+            st.markdown("#### AI-style guidance")
+            for item in summary["insights"]:
+                icon = "💡" if item["type"] == "general" else "⚠️" if item["type"] == "budget" else "🔎"
+                st.markdown(
+                    f"<div style='padding: 0.85rem 1rem; border-radius: 14px; margin-bottom: 0.6rem; background: rgba(91,140,255,0.12); border: 1px solid rgba(255,255,255,0.12);'>"
+                    f"<strong>{icon} {item.get('title', 'Insight')}</strong><br>{item['message']}</div>",
+                    unsafe_allow_html=True,
+                )
 
         with st.expander("View monthly breakdown"):
             for entry in summary["monthly_summary"]:

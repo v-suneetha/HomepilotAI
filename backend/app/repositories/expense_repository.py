@@ -55,6 +55,10 @@ class ExpenseRepository:
                 "is_over": category_total > budget.monthly_limit,
             })
 
+        duplicate_candidates = self._detect_duplicates(transactions)
+        monthly_change = self._get_monthly_change(monthly_summary)
+        insights = self._build_insights(duplicate_candidates, monthly_change, budget_status, category_summary)
+
         return {
             "transaction_count": len(transactions),
             "total_spending": round(total_spending, 2),
@@ -62,7 +66,82 @@ class ExpenseRepository:
             "category_breakdown": [{"category": category, "total": round(total, 2)} for category, total in sorted(category_summary.items())],
             "trend_series": [{"month": month, "total": round(total, 2)} for month, total in sorted(monthly_summary.items())],
             "budget_status": budget_status,
+            "duplicate_candidates": duplicate_candidates,
+            "monthly_change": monthly_change,
+            "insights": insights,
         }
+
+    def _detect_duplicates(self, transactions: list[Transaction]) -> list[dict]:
+        grouped = {}
+        for transaction in transactions:
+            key = (transaction.date.strftime("%Y-%m-%d"), round(float(transaction.amount), 2), transaction.description.lower().strip())
+            grouped.setdefault(key, []).append(transaction)
+
+        duplicates = []
+        for (date_key, amount, description), items in grouped.items():
+            if len(items) > 1:
+                duplicates.append({
+                    "description": items[0].description,
+                    "amount": round(float(items[0].amount), 2),
+                    "date": items[0].date.strftime("%Y-%m-%d"),
+                    "count": len(items),
+                })
+        return sorted(duplicates, key=lambda item: (-item["count"], item["description"]))
+
+    def _get_monthly_change(self, monthly_summary: dict) -> list[dict]:
+        sorted_months = sorted(monthly_summary.items())
+        changes = []
+        for index, (month, total) in enumerate(sorted_months):
+            if index == 0:
+                changes.append({"month": month, "total": round(total, 2), "change": 0.0})
+            else:
+                previous_total = sorted_months[index - 1][1]
+                delta = total - previous_total
+                percent_change = round((delta / previous_total) * 100, 1) if previous_total else 0.0
+                changes.append({"month": month, "total": round(total, 2), "change": round(delta, 2), "percent_change": percent_change})
+        return changes
+
+    def _build_insights(self, duplicate_candidates: list[dict], monthly_change: list[dict], budget_status: list[dict], category_summary: dict) -> list[dict]:
+        insights = []
+        if duplicate_candidates:
+            insights.append({
+                "type": "duplicate",
+                "title": "Duplicate review",
+                "message": f"We found {len(duplicate_candidates)} possible duplicate transaction group(s). Review them to avoid double counting.",
+            })
+
+        if monthly_change and len(monthly_change) >= 2:
+            latest = monthly_change[-1]
+            if latest.get("percent_change", 0) > 0:
+                insights.append({
+                    "type": "trend",
+                    "title": "Spending trend",
+                    "message": f"Spending rose by {latest['percent_change']:.1f}% in the latest month. Consider tightening discretionary categories.",
+                })
+            elif latest.get("percent_change", 0) < 0:
+                insights.append({
+                    "type": "trend",
+                    "title": "Spending trend",
+                    "message": f"Spending decreased by {abs(latest['percent_change']):.1f}% in the latest month. Keep the momentum going.",
+                })
+
+        for item in budget_status:
+            if item["is_over"]:
+                insights.append({
+                    "type": "budget",
+                    "title": "Budget alert",
+                    "message": f"{item['category']} is over budget. You have {item['remaining']:.2f} left to stay within your monthly limit.",
+                })
+                break
+
+        if not insights:
+            insights.append({
+                "type": "general",
+                "title": "Healthy habits",
+                "message": "Your spending patterns look healthy. Keep tracking and adjusting budgets as your habits evolve.",
+            })
+
+        return insights
 
     def set_budget(self, category_name: str, monthly_limit: float, month: str | None = None) -> Budget:
         month_key = month or datetime.now().strftime("%Y-%m")

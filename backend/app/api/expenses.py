@@ -38,4 +38,7 @@ def dashboard():
         "category_breakdown": summary.get("category_breakdown", []),
         "trend_series": summary.get("trend_series", []),
         "budget_status": summary.get("budget_status", []),
+        "duplicate_candidates": summary.get("duplicate_candidates", []),
+        "monthly_change": summary.get("monthly_change", []),
+        "insights": summary.get("insights", []),
     }

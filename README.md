@@ -1,13 +1,14 @@
 # HomePilot AI
 
-## v0.1 Foundation
+## v0.3.0 - Advanced Expense Analysis
 
-This milestone delivers a runnable local foundation with:
+This release brings a more refined household finance experience with:
 
-- a FastAPI backend
-- a Streamlit frontend
-- a Docker Compose setup
-- basic health endpoints and tests
+- duplicate transaction detection and review guidance
+- monthly comparison and spending trend insights
+- AI-style recommendations and budget alerts
+- a more polished premium dashboard experience
+- improved import workflow and analytics support
 
 ## v0.2 Expense Engine
 
@@ -19,6 +20,15 @@ This release expands the product into a working household expense experience wit
 - category breakdowns and top-spending insights
 - budget tracking and budget status monitoring
 - a more polished dashboard experience
+
+## v0.1 Foundation
+
+This milestone delivers a runnable local foundation with:
+
+- a FastAPI backend
+- a Streamlit frontend
+- a Docker Compose setup
+- basic health endpoints and tests
 
 ## Run locally
 
