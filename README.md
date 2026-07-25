@@ -9,6 +9,17 @@ This milestone delivers a runnable local foundation with:
 - a Docker Compose setup
 - basic health endpoints and tests
 
+## v0.2 Expense Engine
+
+This release expands the product into a working household expense experience with:
+
+- CSV and Excel import support
+- transaction storage and categorization
+- monthly spending summaries and trend charts
+- category breakdowns and top-spending insights
+- budget tracking and budget status monitoring
+- a more polished dashboard experience
+
 ## Run locally
 
 ### Backend
