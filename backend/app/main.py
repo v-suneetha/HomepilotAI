@@ -1,10 +1,15 @@
 from fastapi import FastAPI
 
+from app.api.expenses import router as expense_router
 from app.api.health import router as health_router
 from app.config import settings
+from app.database import Base, engine
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.app_name)
 app.include_router(health_router)
+app.include_router(expense_router)
 
 
 @app.get("/")

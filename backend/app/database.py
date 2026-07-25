@@ -1,2 +1,5 @@
 from sqlalchemy import create_engine
-engine=create_engine('sqlite:///homepilot.db')
+from sqlalchemy.orm import declarative_base
+
+engine = create_engine("sqlite:///homepilot.db")
+Base = declarative_base()
